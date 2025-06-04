@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Editar Ítem - Sistema de Inventario</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      border-radius: 20px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+      overflow: hidden;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+      color: white;
+      padding: 30px;
+      text-align: center;
+      position: relative;
+    }
+
+    .header::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 20"><defs><radialGradient id="a" cx="50%" cy="0%" r="100%"><stop offset="0%" stop-color="rgba(255,255,255,0.1)"/><stop offset="100%" stop-color="rgba(255,255,255,0)"/></radialGradient></defs><rect width="100" height="20" fill="url(%23a)"/></svg>');
+      opacity: 0.5;
+    }
+
+    .header h1 {
+      font-size: 2.5rem;
+      font-weight: 300;
+      margin-bottom: 10px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .header p {
+      opacity: 0.9;
+      font-size: 1.1rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    .form-container {
+      padding: 40px;
+    }
+
+    .messages {
+      margin-bottom: 30px;
+    }
+
+    .message {
+      padding: 15px 20px;
+      margin-bottom: 10px;
+      border-radius: 10px;
+      border: none;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      animation: slideIn 0.3s ease-out;
+    }
+
+    .message.error {
+      background: linear-gradient(135deg, #ff6b6b, #ee5a52);
+      color: white;
+    }
+
+    .message.success {
+      background: linear-gradient(135deg, #51cf66, #40c057);
+      color: white;
+    }
+
+    .message.info {
+      background: linear-gradient(135deg, #339af0, #228be6);
+      color: white;
+    }
+
+    .form-grid {
+      display: grid;
+      gap: 25px;
+      grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    }
+
+    .form-group {
+      position: relative;
+    }
+
+    .form-group.full-width {
+      grid-column: 1 / -1;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      color: #2c3e50;
+      font-size: 0.95rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    input[type="text"],
+    input[type="number"],
+    select {
+      width: 100%;
+      padding: 15px 20px;
+      border: 2px solid #e9ecef;
+      border-radius: 12px;
+      font-size: 1rem;
+      transition: all 0.3s ease;
+      background: rgba(248, 249, 250, 0.8);
+      font-family: inherit;
+    }
+
+    input[type="text"]:focus,
+    input[type="number"]:focus,
+    select:focus {
+      outline: none;
+      border-color: #4facfe;
+      background: white;
+      box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.1);
+      transform: translateY(-2px);
+    }
+
+    select {
+      cursor: pointer;
+      background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><path stroke="%234facfe" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>');
+      background-repeat: no-range;
+      background-position: right 15px center;
+      background-size: 20px;
+      appearance: none;
+      padding-right: 50px;
+    }
+
+    .button-group {
+      display: flex;
+      gap: 15px;
+      margin-top: 40px;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      padding: 15px 30px;
+      border: none;
+      border-radius: 12px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+      color: white;
+      box-shadow: 0 4px 15px rgba(79, 172, 254, 0.3);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(79, 172, 254, 0.4);
+    }
+
+    .btn-secondary {
+      background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+      color: #495057;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    }
+
+    .btn-secondary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+      color: #212529;
+    }
+
+    .back-link {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 500;
+      color: #6c757d;
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @media (max-width: 768px) {
+      .container {
+        margin: 10px;
+        border-radius: 15px;
+      }
+      
+      .header {
+        padding: 20px;
+      }
+      
+      .header h1 {
+        font-size: 2rem;
+      }
+      
+      .form-container {
+        padding: 20px;
+      }
+      
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .button-group {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      
+      .btn {
+        justify-content: center;
+      }
+    }
+
+    /* Loading animation */
+    .btn-primary:active {
+      transform: scale(0.98);
+    }
+
+    /* Form validation styles */
+    input:invalid {
+      border-color: #dc3545;
+    }
+
+    input:valid {
+      border-color: #28a745;
+    }
+
+    /* Icon styles */
+    .icon {
+      width: 20px;
+      height: 20px;
+      fill: currentColor;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>📦 Editar Ítem</h1>
+      <p>Actualiza la información del elemento en tu inventario</p>
+    </div>
+
+    <div class="form-container">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <div class="messages">
+            {% for category, message in messages %}
+              <div class="message {{ category }}">
+                {% if category == 'error' %}
+                  ⚠
+                {% elif category == 'success' %}
+                  ✅
+                {% else %}
+                  ℹ
+                {% endif %}
+                {{ message }}
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+
+      <form method="POST">
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="nombre">🏷 Nombre</label>
+            <input type="text" id="nombre" name="nombre" value="{{ item.nombre }}" required placeholder="Ingresa el nombre del ítem" />
+          </div>
+
+          <div class="form-group">
+            <label for="cantidad">📊 Cantidad</label>
+            <input type="number" id="cantidad" name="cantidad" min="1" value="{{ item.cantidad }}" placeholder="Ej: 10" />
+          </div>
+
+          <div class="form-group full-width">
+            <label for="descripcion">📝 Descripción</label>
+            <input type="text" id="descripcion" name="descripcion" value="{{ item.descripcion }}" placeholder="Describe el ítem en detalle" />
+          </div>
+
+          <div class="form-group">
+            <label for="valor_unitario">💰 Valor Unitario</label>
+            <input type="number" id="valor_unitario" step="0.01" name="valor_unitario" value="{{ item.valor_unitario }}" placeholder="0.00" />
+          </div>
+
+          <div class="form-group">
+            <label for="categoria">📂 Categoría</label>
+            <select id="categoria" name="categoria" required>
+              <option value="">Selecciona una categoría</option>
+              {% for cat in categorias %}
+                <option value="{{ cat.value }}" {% if cat == item.categoria %}selected{% endif %}>{{ cat.value }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="ubicacion">📍 Ubicación</label>
+            <input type="text" id="ubicacion" name="ubicacion" value="{{ item.ubicacion }}" placeholder="Ej: Almacén A - Estante 3" />
+          </div>
+
+          <div class="form-group">
+            <label for="estado">🔧 Estado</label>
+            <select id="estado" name="estado">
+              <option value="">Selecciona un estado</option>
+              {% for estado in estados %}
+                <option value="{{ estado.value }}" {% if estado == item.estado %}selected{% endif %}>{{ estado.value }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="responsable">👤 Responsable</label>
+            <input type="text" id="responsable" name="responsable" value="{{ item.responsable }}" placeholder="Nombre del responsable" />
+          </div>
+
+          <div class="form-group">
+            <label for="tipo_compra">🛒 Tipo de Compra</label>
+            <select id="tipo_compra" name="tipo_compra">
+              <option value="">Selecciona tipo de compra</option>
+              {% for tipo in tipos_compra %}
+                <option value="{{ tipo.value }}" {% if tipo == item.tipo_compra %}selected{% endif %}>{{ tipo.value }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+
+        <div class="button-group">
+          <a href="{{ url_for('index') }}" class="btn btn-secondary back-link">
+            <svg class="icon" viewBox="0 0 24 24">
+              <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
+            </svg>
+            Volver al Inventario
+          </a>
+          
+          <button type="submit" class="btn btn-primary">
+            <svg class="icon" viewBox="0 0 24 24">
+              <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+            </svg>
+            Guardar Cambios
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    // Smooth form validation feedback
+    document.querySelectorAll('input, select').forEach(element => {
+      element.addEventListener('blur', function() {
+        if (this.hasAttribute('required') && !this.value.trim()) {
+          this.style.borderColor = '#dc3545';
+        } else if (this.value.trim()) {
+          this.style.borderColor = '#28a745';
+        }
+      });
+    });
+
+    // Form submission loading state
+    document.querySelector('form').addEventListener('submit', function() {
+      const submitBtn = document.querySelector('.btn-primary');
+      submitBtn.innerHTML = '<div style="width: 20px; height: 20px; border: 2px solid rgba(255,255,255,0.3); border-top: 2px solid white; border-radius: 50%; animation: spin 1s linear infinite;"></div> Guardando...';
+      submitBtn.disabled = true;
+    });
+
+    // Add spin animation
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+    `;
+    document.head.appendChild(style);
+  </script>
+</body>
+</html>

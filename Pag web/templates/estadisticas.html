@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Estadísticas - Sistema de Inventario</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+      color: #333;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: rgba(255, 255, 255, 0.98); /* Ligeramente más opaco */
+      backdrop-filter: blur(10px);
+      border-radius: 20px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15); /* Sombra más pronunciada */
+      overflow: hidden;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      color: white;
+      padding: 30px 40px; /* Más padding */
+      text-align: center;
+      position: relative;
+    }
+
+    .header::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 20"><defs><radialGradient id="a" cx="50%" cy="0%" r="100%"><stop offset="0%" stop-color="rgba(255,255,255,0.1)"/><stop offset="100%" stop-color="rgba(255,255,255,0)"/></radialGradient></defs><rect width="100" height="20" fill="url(%23a)"/></svg>');
+      opacity: 0.5;
+    }
+
+    .header h1 {
+      font-size: 2.8rem; /* Ligeramente más grande */
+      font-weight: 300;
+      margin-bottom: 10px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .header p {
+      opacity: 0.9;
+      font-size: 1.1rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    .back-btn {
+      position: absolute;
+      top: 30px;
+      left: 30px;
+      background: rgba(255, 255, 255, 0.2);
+      color: white;
+      padding: 12px 22px; /* Más padding */
+      border: none;
+      border-radius: 25px;
+      cursor: pointer;
+      text-decoration: none;
+      font-weight: 500;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      z-index: 2;
+    }
+
+    .back-btn:hover {
+      background: rgba(255, 255, 255, 0.35); /* Más opaco al hover */
+      transform: translateY(-2px);
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+
+    .stats-container {
+      padding: 40px;
+    }
+
+    .summary-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); /* Ligeramente más ancho */
+      gap: 25px; /* Más espacio */
+      margin-bottom: 40px;
+    }
+
+    .summary-card {
+      background: linear-gradient(135deg, #6a82fb 0%, #7f53ac 100%); /* Ajuste de color */
+      color: white;
+      padding: 30px;
+      border-radius: 15px;
+      text-align: center;
+      box-shadow: 0 10px 30px rgba(102, 126, 234, 0.35); /* Sombra más notoria */
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .summary-card::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: linear-gradient(45deg, transparent, rgba(255,255,255,0.12), transparent); /* Brillo más sutil */
+      transform: rotate(45deg);
+      transition: all 0.7s; /* Transición más suave */
+      opacity: 0;
+    }
+
+    .summary-card:hover {
+      transform: translateY(-8px); /* Mayor elevación */
+      box-shadow: 0 15px 35px rgba(102, 126, 234, 0.45);
+    }
+    
+    .summary-card:hover::before {
+      opacity: 1;
+      animation: shine 0.7s ease-in-out;
+    }
+
+    .summary-card h3 {
+      font-size: 1.2rem;
+      margin-bottom: 12px; /* Más espacio */
+      opacity: 0.9;
+      font-weight: 500; /* Ligeramente más grueso */
+    }
+
+    .summary-card .value {
+      font-size: 2.6rem; /* Ligeramente más grande */
+      font-weight: bold;
+      margin-bottom: 8px; /* Más espacio */
+    }
+
+    .summary-card .label {
+      font-size: 0.9rem;
+      opacity: 0.85; /* Ligeramente más visible */
+    }
+
+    .charts-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); /* Ajuste de tamaño mínimo */
+      gap: 30px;
+      margin-bottom: 40px;
+    }
+
+    .chart-container {
+      background: #ffffff;
+      padding: 30px;
+      border-radius: 15px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08); /* Sombra más suave */
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .chart-container:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 15px 40px rgba(0, 0, 0, 0.12);
+    }
+    
+    .chart-container h3 {
+      color: #2c3e50;
+      margin-bottom: 25px; /* Más espacio */
+      text-align: center;
+      font-size: 1.4rem; /* Ligeramente más grande */
+      font-weight: 600;
+    }
+
+    .chart-wrapper {
+      position: relative;
+      height: 350px;
+    }
+
+    .detailed-stats {
+      background: #ffffff;
+      padding: 30px;
+      border-radius: 15px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+      margin-bottom: 30px; /* Más espacio */
+    }
+
+    .detailed-stats h3 {
+      color: #2c3e50;
+      margin-bottom: 25px;
+      font-size: 1.4rem;
+      text-align: center;
+      font-weight: 600;
+    }
+
+    .stats-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px; /* Más espacio */
+    }
+
+    .stats-table th,
+    .stats-table td {
+      padding: 14px 18px; /* Más padding */
+      text-align: left;
+      border-bottom: 1px solid #e9ecef;
+      font-size: 0.95rem; /* Ligeramente más grande */
+    }
+
+    .stats-table th {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      font-weight: 600;
+      text-align: center;
+    }
+    
+    .stats-table tr:last-child td {
+        border-bottom: none; /* Quitar borde inferior de la última fila */
+    }
+
+    .stats-table tr:hover {
+      background-color: #f8f9fa;
+      /* transform: scale(1.01); Sutil o quitar si es molesto */
+      transition: background-color 0.2s ease;
+    }
+
+    .stats-table .currency {
+      color: #28a745;
+      font-weight: 600;
+    }
+
+    .stats-table .count {
+      color: #343a40; /* Color más oscuro */
+      font-weight: 500;
+    }
+    
+    .stats-table td strong {
+        color: #495057;
+    }
+
+    .loading {
+      display: table-row; /* Para que ocupe una fila de tabla */
+      text-align: center;
+    }
+    .loading td {
+        padding: 30px;
+        text-align: center;
+        color: #6c757d;
+    }
+
+    .spinner {
+      border: 4px solid #f3f3f3; /* Borde más grueso */
+      border-top: 4px solid #667eea;
+      border-radius: 50%;
+      width: 35px; /* Más grande */
+      height: 35px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 10px auto; /* Centrado y con margen inferior */
+      display: block;
+    }
+
+    .metric-badge {
+      display: inline-block;
+      color: white;
+      padding: 6px 14px; /* Más padding */
+      border-radius: 20px;
+      font-size: 0.85rem; /* Ligeramente más grande */
+      font-weight: 600;
+      margin-left: 10px;
+      vertical-align: middle;
+    }
+
+    .chart-controls {
+      display: flex;
+      justify-content: center;
+      gap: 12px; /* Más espacio */
+      margin-bottom: 25px; /* Más espacio */
+    }
+
+    .chart-btn {
+      padding: 9px 18px; /* Más padding */
+      border: 1px solid #dee2e6; /* Borde sutil */
+      border-radius: 20px;
+      background: #f8f9fa;
+      color: #495057;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-size: 0.9rem;
+      font-weight: 500;
+    }
+
+    .chart-btn.active {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border-color: transparent;
+      box-shadow: 0 4px 10px rgba(102, 126, 234, 0.3);
+    }
+
+    .chart-btn:hover:not(.active) {
+      transform: translateY(-2px);
+      border-color: #adb5bd;
+      background-color: #e9ecef;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    @keyframes shine {
+      0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+      100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+    }
+
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .fade-in-up {
+      animation: fadeInUp 0.6s ease-out forwards; /* 'forwards' para mantener el estado final */
+    }
+
+    @media (max-width: 768px) {
+      .container {
+        margin: 10px;
+        border-radius: 15px;
+        padding: 0; /* Quitar padding del container para que el header ocupe todo */
+      }
+      
+      .header {
+        padding: 25px 20px; /* Ajustar padding del header */
+        border-top-left-radius: 15px;
+        border-top-right-radius: 15px;
+      }
+      
+      .header h1 {
+        font-size: 2.2rem;
+      }
+      
+      .stats-container {
+        padding: 20px;
+      }
+      
+      .charts-grid {
+        grid-template-columns: 1fr; /* Una columna en móviles */
+        gap: 25px;
+      }
+      
+      .back-btn {
+        position: static; /* Botón de volver debajo del título */
+        margin: 0 auto 20px auto; /* Centrado */
+        display: table; /* Para centrar con margin auto */
+      }
+      
+      .chart-wrapper {
+        height: 300px;
+      }
+      .summary-cards {
+        grid-template-columns: 1fr; /* Tarjetas de resumen en una columna */
+      }
+      .stats-table {
+          font-size: 0.9rem; /* Reducir fuente en tablas en móvil */
+      }
+      .stats-table th, .stats-table td {
+          padding: 10px 12px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <a href="/" class="back-btn">
+        ← Volver al Inventario
+      </a>
+      <h1>📊 Estadísticas del Inventario</h1>
+      <p>Análisis detallado de tu inventario</p>
+    </div>
+
+    <div class="stats-container">
+      <div class="summary-cards fade-in-up">
+        <div class="summary-card">
+          <h3>💰 Valor Total Global</h3>
+          <div class="value" id="valor-total">$0.00</div>
+          <div class="label">Suma del valor de todos los items</div>
+        </div>
+        
+        <div class="summary-card">
+          <h3>📦 Total Unidades de Items</h3>
+          <div class="value" id="total-items">0</div>
+          <div class="label">Suma de cantidades de todos los items</div>
+        </div>
+        
+        <div class="summary-card">
+          <h3>📂 Total Categorías</h3>
+          <div class="value" id="total-categorias">0</div>
+          <div class="label">Categorías definidas en el sistema</div>
+        </div>
+        
+        <div class="summary-card">
+          <h3>💎 Valor Promedio Global</h3>
+          <div class="value" id="valor-promedio">$0.00</div>
+          <div class="label">Por unidad de item</div>
+        </div>
+      </div>
+
+      <div class="charts-grid">
+        <div class="chart-container fade-in-up" style="animation-delay: 0.1s;">
+          <h3>💰 Valor por Categoría</h3>
+          <div class="chart-controls">
+            <button class="chart-btn active" data-chart-id="categorias-valor" data-chart-type="doughnut" onclick="toggleChart(this)">Circular</button>
+            <button class="chart-btn" data-chart-id="categorias-valor" data-chart-type="bar" onclick="toggleChart(this)">Barras</button>
+          </div>
+          <div class="chart-wrapper">
+            <canvas id="categorias-valor"></canvas>
+          </div>
+        </div>
+
+        <div class="chart-container fade-in-up" style="animation-delay: 0.2s;">
+          <h3>📊 Unidades por Categoría</h3>
+           <div class="chart-controls">
+            <button class="chart-btn active" data-chart-id="categorias-cantidad" data-chart-type="doughnut" onclick="toggleChart(this)">Circular</button>
+            <button class="chart-btn" data-chart-id="categorias-cantidad" data-chart-type="bar" onclick="toggleChart(this)">Barras</button>
+          </div>
+          <div class="chart-wrapper">
+            <canvas id="categorias-cantidad"></canvas>
+          </div>
+        </div>
+
+        <div class="chart-container fade-in-up" style="animation-delay: 0.3s;">
+          <h3>🔧 Unidades por Estado</h3>
+           <div class="chart-controls">
+            <button class="chart-btn active" data-chart-id="estados-chart" data-chart-type="bar" onclick="toggleChart(this)">Barras</button>
+            <button class="chart-btn" data-chart-id="estados-chart" data-chart-type="pie" onclick="toggleChart(this)">Circular</button>
+          </div>
+          <div class="chart-wrapper">
+            <canvas id="estados-chart"></canvas>
+          </div>
+        </div>
+
+        <div class="chart-container fade-in-up" style="animation-delay: 0.4s;">
+          <h3>🛒 Valor por Tipo de Compra</h3>
+           <div class="chart-controls">
+            <button class="chart-btn active" data-chart-id="tipos-compra-chart" data-chart-type="polarArea" onclick="toggleChart(this)">Polar</button>
+             <button class="chart-btn" data-chart-id="tipos-compra-chart" data-chart-type="pie" onclick="toggleChart(this)">Circular</button>
+          </div>
+          <div class="chart-wrapper">
+            <canvas id="tipos-compra-chart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <div class="detailed-stats fade-in-up" style="animation-delay: 0.5s;">
+        <h3>📋 Estadísticas Detalladas por Categoría</h3>
+        <table class="stats-table">
+          <thead>
+            <tr>
+              <th>Categoría</th>
+              <th>Unidades</th>
+              <th>Valor Total</th>
+              <th>Valor Promedio/Unidad</th>
+              <th>% del Valor Global</th>
+            </tr>
+          </thead>
+          <tbody id="tabla-categorias">
+             <tr class="loading"><td colspan="5"><div class="spinner"></div>Cargando datos...</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="detailed-stats fade-in-up" style="animation-delay: 0.6s;">
+        <h3>🔧 Estadísticas Detalladas por Estado del Item</h3>
+        <table class="stats-table">
+          <thead>
+            <tr>
+              <th>Estado</th>
+              <th>Unidades</th>
+              <th>Valor Total en Estado</th>
+              <th>% del Valor Global</th>
+            </tr>
+          </thead>
+          <tbody id="tabla-estados">
+            <tr class="loading"><td colspan="4"><div class="spinner"></div>Cargando datos...</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="detailed-stats fade-in-up" style="animation-delay: 0.7s;">
+        <h3>🛒 Estadísticas Detalladas por Tipo de Compra</h3>
+        <table class="stats-table">
+          <thead>
+            <tr>
+              <th>Tipo de Compra</th>
+              <th>Unidades</th>
+              <th>Valor Total por Tipo</th>
+              <th>% del Valor Global</th>
+            </tr>
+          </thead>
+          <tbody id="tabla-tipos-compra">
+            <tr class="loading"><td colspan="4"><div class="spinner"></div>Cargando datos...</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    let charts = {};
+    let statsDataGlobal = {}; 
+
+    const baseColors = [
+      '#667eea', '#764ba2', '#f093fb', '#f5576c', '#4facfe', '#00f2fe',
+      '#43e97b', '#38f9d7', '#fa709a', '#fee140', '#a8edea', '#fed6e3',
+      '#ff7e5f', '#feb47b', '#ffc3a0', '#ffafbd', '#f7797d', '#fbd786', '#c6ffdd'
+    ];
+
+    function getChartColors(numColors) {
+        let colors = [];
+        for (let i = 0; i < numColors; i++) {
+            colors.push(baseColors[i % baseColors.length]);
+        }
+        return colors;
+    }
+
+    function showLoadingPlaceholders() {
+        document.getElementById('tabla-categorias').innerHTML = '<tr class="loading"><td colspan="5"><div class="spinner"></div>Cargando datos de categorías...</td></tr>';
+        document.getElementById('tabla-estados').innerHTML = '<tr class="loading"><td colspan="4"><div class="spinner"></div>Cargando datos de estados...</td></tr>';
+        document.getElementById('tabla-tipos-compra').innerHTML = '<tr class="loading"><td colspan="4"><div class="spinner"></div>Cargando datos de tipos de compra...</td></tr>';
+    }
+    
+    async function loadData() {
+      showLoadingPlaceholders();
+      try {
+        const response = await fetch('/api/estadisticas');
+        if (!response.ok) {
+          let errorMsg = `Error HTTP: ${response.status}`;
+          try { // Intenta parsear el JSON de error del backend
+              const errData = await response.json();
+              errorMsg += ` - ${errData.error || 'Error desconocido del servidor'}`;
+          } catch (e) { /* No hacer nada si no hay JSON de error */ }
+          console.error('Error fetching data from server:', errorMsg);
+          throw new Error(errorMsg);
+        }
+        statsDataGlobal = await response.json();
+        
+        if (Object.keys(statsDataGlobal).length === 0 || !statsDataGlobal.categorias_nombres) { // Chequeo más robusto
+            console.warn('Datos recibidos del servidor están vacíos o incompletos.');
+            loadExampleData(); // Fallback si los datos son inesperados
+            return;
+        }
+
+        updateSummaryCards();
+        createAllCharts();
+        fillAllTables();
+
+      } catch (error) {
+        console.error('Fallo al cargar datos desde /api/estadisticas:', error);
+        loadExampleData(); 
+      }
+    }
+
+    function loadExampleData() {
+      console.warn("ADVERTENCIA: Cargando datos de EJEMPLO. La API no está disponible o devolvió un error.");
+      statsDataGlobal = {
+        categorias_nombres: ['Muebles (Ej.)', 'Electrónicos (Ej.)', 'Oficina (Ej.)'],
+        categorias_valores: [1500.50, 3200.75, 850.25],
+        categorias_cantidades_items: [15, 28, 45],
+        
+        estados_nombres: ['Disponible (Ej.)', 'En Uso (Ej.)', 'Reparación (Ej.)'],
+        estados_valores: [4500.30, 1800.50, 350.25],
+        estados_cantidades_items: [75, 25, 5],
+        
+        tipos_compra_nombres: ['Comprado (Ej.)', 'Donado (Ej.)'],
+        tipos_compra_valores: [5800.50, 1400.80],
+        tipos_compra_cantidades_items: [85, 23],
+
+        gran_total_valor: 7201.30,
+        gran_total_cantidad_items: 108,
+        total_categorias_activas: 3
+      };
+      
+      updateSummaryCards();
+      createAllCharts();
+      fillAllTables();
+    }
+
+    function updateSummaryCards() {
+      const granTotalValor = statsDataGlobal.gran_total_valor || 0;
+      const granTotalItems = statsDataGlobal.gran_total_cantidad_items || 0;
+      const totalCategorias = statsDataGlobal.total_categorias_activas || (statsDataGlobal.categorias_nombres ? statsDataGlobal.categorias_nombres.length : 0);
+      const valorPromedio = granTotalItems > 0 ? granTotalValor / granTotalItems : 0;
+
+      document.getElementById('valor-total').textContent = `$${granTotalValor.toLocaleString('es-PE', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+      document.getElementById('total-items').textContent = granTotalItems.toLocaleString('es-PE');
+      document.getElementById('total-categorias').textContent = totalCategorias;
+      document.getElementById('valor-promedio').textContent = `$${valorPromedio.toLocaleString('es-PE', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+    }
+
+    function createAllCharts() {
+      createChart('categorias-valor', 'doughnut', statsDataGlobal.categorias_nombres, statsDataGlobal.categorias_valores, 'Valor');
+      createChart('categorias-cantidad', 'doughnut', statsDataGlobal.categorias_nombres, statsDataGlobal.categorias_cantidades_items, 'Unidades');
+      createChart('estados-chart', 'bar', statsDataGlobal.estados_nombres, statsDataGlobal.estados_cantidades_items, 'Unidades');
+      createChart('tipos-compra-chart', 'polarArea', statsDataGlobal.tipos_compra_nombres, statsDataGlobal.tipos_compra_valores, 'Valor');
+    }
+    
+    function createChartConfig(type, labels, data, dataLabel = '', unit = '') {
+        const numDataPoints = labels ? labels.length : 0;
+        const chartColors = getChartColors(numDataPoints);
+        const isCurrency = unit === 'Valor';
+
+        const config = {
+            type: type,
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: dataLabel,
+                    data: data,
+                    backgroundColor: chartColors,
+                    borderColor: (type === 'doughnut' || type === 'pie' || type === 'polarArea') ? '#fff' : chartColors,
+                    borderWidth: (type === 'doughnut' || type === 'pie' || type === 'polarArea') ? 2 : 1,
+                    hoverOffset: (type === 'doughnut' || type === 'pie' || type === 'polarArea') ? 8 : 0,
+                    borderRadius: (type === 'bar') ? {topLeft: 6, topRight: 6} : 0,
+                    borderSkipped: false,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: { padding: 20, usePointStyle: true, font: {size: 13}},
+                        display: !(type === 'bar') // Ocultar leyenda para gráficos de barras, mostrar para otros
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0,0,0,0.8)',
+                        titleFont: {size: 14, weight: 'bold'},
+                        bodyFont: {size: 13},
+                        padding: 10,
+                        callbacks: {
+                            label: function(context) {
+                                let val = context.parsed.y !== undefined ? context.parsed.y : context.parsed;
+                                const formattedVal = isCurrency 
+                                    ? val.toLocaleString('es-PE', { style: 'currency', currency: 'PEN', minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                                    : val.toLocaleString('es-PE');
+                                return `${context.label}: ${formattedVal} ${isCurrency ? '' : unit}`;
+                            }
+                        }
+                    }
+                },
+                animation: {
+                    duration: 1200,
+                    easing: 'easeInOutQuart'
+                },
+                 scales: (type === 'bar') ? {
+                    y: { 
+                        beginAtZero: true, 
+                        grid: { color: 'rgba(0,0,0,0.07)' },
+                        ticks: {
+                            callback: function(value) { return isCurrency ? value.toLocaleString('es-PE', { style: 'currency', currency: 'PEN', minimumFractionDigits:0 }) : value; },
+                            font: {size: 13}
+                        }
+                    },
+                    x: { grid: { display: false }, ticks: {font: {size: 13}} }
+                } : ((type === 'polarArea') ? { r: { grid: { color: 'rgba(0,0,0,0.07)'}, ticks: {font: {size:13}, backdropPadding: 5}}} : {})
+            }
+        };
+        return config;
+    }
+
+    function createChart(chartId, defaultType, labels, data, unit = '') {
+        const ctx = document.getElementById(chartId)?.getContext('2d');
+        if (!ctx) {
+            console.error(`Elemento canvas con ID '${chartId}' no encontrado.`);
+            return;
+        }
+        if (charts[chartId]) {
+            charts[chartId].destroy();
+        }
+        const config = createChartConfig(defaultType, labels, data, unit, unit); // dataLabel es el mismo que unit
+        charts[chartId] = new Chart(ctx, config);
+
+        const defaultButton = document.querySelector(`.chart-controls button[data-chart-id='${chartId}'][data-chart-type='${defaultType}']`);
+        if (defaultButton) {
+            const buttons = defaultButton.parentElement.querySelectorAll('.chart-btn');
+            buttons.forEach(btn => btn.classList.remove('active'));
+            defaultButton.classList.add('active');
+        }
+    }
+
+    function toggleChart(buttonElement) {
+      const chartId = buttonElement.dataset.chartId;
+      const type = buttonElement.dataset.chartType;
+      
+      const buttons = buttonElement.parentElement.querySelectorAll('.chart-btn');
+      buttons.forEach(btn => btn.classList.remove('active'));
+      buttonElement.classList.add('active');
+
+      let labels, data, unit;
+
+      switch(chartId) {
+        case 'categorias-valor':
+          labels = statsDataGlobal.categorias_nombres; data = statsDataGlobal.categorias_valores; unit = 'Valor'; break;
+        case 'categorias-cantidad':
+          labels = statsDataGlobal.categorias_nombres; data = statsDataGlobal.categorias_cantidades_items; unit = 'Unidades'; break;
+        case 'estados-chart':
+          labels = statsDataGlobal.estados_nombres; data = statsDataGlobal.estados_cantidades_items; unit = 'Unidades'; break;
+        case 'tipos-compra-chart':
+          labels = statsDataGlobal.tipos_compra_nombres; data = statsDataGlobal.tipos_compra_valores; unit = 'Valor'; break;
+        default: console.error("ID de gráfico desconocido:", chartId); return;
+      }
+      
+      const ctx = document.getElementById(chartId).getContext('2d');
+      if (charts[chartId]) charts[chartId].destroy();
+      const config = createChartConfig(type, labels, data, unit, unit);
+      charts[chartId] = new Chart(ctx, config);
+    }
+
+    function fillAllTables() {
+      fillCategoryTable();
+      fillStatusTable();
+      fillPurchaseTypeTable();
+    }
+
+    function formatCurrency(value) {
+        return (value || 0).toLocaleString('es-PE', { style: 'currency', currency: 'PEN', minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function fillCategoryTable() {
+      const tbody = document.getElementById('tabla-categorias');
+      tbody.innerHTML = ''; 
+      
+      if (!statsDataGlobal.categorias_nombres || statsDataGlobal.categorias_nombres.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 20px;">No hay datos de categorías disponibles.</td></tr>';
+        return;
+      }
+      const granTotalValor = statsDataGlobal.gran_total_valor || 1; 
+      
+      statsDataGlobal.categorias_nombres.forEach((categoria, index) => {
+        const valor = statsDataGlobal.categorias_valores[index] || 0;
+        const cantidad = statsDataGlobal.categorias_cantidades_items[index] || 0;
+        const valorPromedio = cantidad > 0 ? valor / cantidad : 0;
+        const porcentaje = granTotalValor > 0 ? (valor / granTotalValor * 100) : 0;
+        
+        const row = tbody.insertRow();
+        row.innerHTML = `
+          <td><strong>${categoria}</strong></td>
+          <td class="count">${cantidad.toLocaleString('es-PE')}</td>
+          <td class="currency">${formatCurrency(valor)}</td>
+          <td class="currency">${formatCurrency(valorPromedio)}</td>
+          <td>${porcentaje.toFixed(1)}% <span class="metric-badge" style="background:${getChartColors(statsDataGlobal.categorias_nombres.length)[index]}">${porcentaje.toFixed(0)}%</span></td>
+        `;
+      });
+    }
+
+    function fillStatusTable() {
+      const tbody = document.getElementById('tabla-estados');
+      tbody.innerHTML = '';
+      if (!statsDataGlobal.estados_nombres || statsDataGlobal.estados_nombres.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding: 20px;">No hay datos de estados disponibles.</td></tr>';
+        return;
+      }
+      const granTotalValor = statsDataGlobal.gran_total_valor || 1;
+      statsDataGlobal.estados_nombres.forEach((estado, index) => {
+        const valor = statsDataGlobal.estados_valores[index] || 0;
+        const cantidad = statsDataGlobal.estados_cantidades_items[index] || 0;
+        const porcentaje = granTotalValor > 0 ? (valor / granTotalValor * 100) : 0;
+        const row = tbody.insertRow();
+        row.innerHTML = `
+          <td><strong>${estado}</strong></td>
+          <td class="count">${cantidad.toLocaleString('es-PE')}</td>
+          <td class="currency">${formatCurrency(valor)}</td>
+          <td>${porcentaje.toFixed(1)}% <span class="metric-badge" style="background:${getChartColors(statsDataGlobal.estados_nombres.length)[index]}">${porcentaje.toFixed(0)}%</span></td>
+        `;
+      });
+    }
+
+    function fillPurchaseTypeTable() {
+      const tbody = document.getElementById('tabla-tipos-compra');
+      tbody.innerHTML = '';
+      if (!statsDataGlobal.tipos_compra_nombres || statsDataGlobal.tipos_compra_nombres.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding: 20px;">No hay datos de tipos de compra disponibles.</td></tr>';
+        return;
+      }
+      const granTotalValor = statsDataGlobal.gran_total_valor || 1;
+      statsDataGlobal.tipos_compra_nombres.forEach((tipo, index) => {
+        const valor = statsDataGlobal.tipos_compra_valores[index] || 0;
+        const cantidad = statsDataGlobal.tipos_compra_cantidades_items[index] || 0;
+        const porcentaje = granTotalValor > 0 ? (valor / granTotalValor * 100) : 0;
+        const row = tbody.insertRow();
+        row.innerHTML = `
+          <td><strong>${tipo}</strong></td>
+          <td class="count">${cantidad.toLocaleString('es-PE')}</td>
+          <td class="currency">${formatCurrency(valor)}</td>
+          <td>${porcentaje.toFixed(1)}% <span class="metric-badge" style="background:${getChartColors(statsDataGlobal.tipos_compra_nombres.length)[index]}">${porcentaje.toFixed(0)}%</span></td>
+        `;
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+      loadData();
+      const elements = document.querySelectorAll('.fade-in-up');
+      elements.forEach((el, index) => {
+        // La animación ya tiene `forwards`, el delay se maneja en el style inline
+        // el.style.animationDelay = `${index * 0.08}s`; 
+      });
+    });
+  </script>
+</body>
+</html>
